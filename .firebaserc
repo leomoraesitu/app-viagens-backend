@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "appviagens-6f9bc"
-  }
+    "dev": "appviagens-6f9bc",
+    "prod": "appviagens2-92cbf"
+  },
+  "targets": {},
+  "etags": {}
 }
