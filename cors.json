@@ -1,0 +1,15 @@
+[
+  {
+    "origin": [
+      "http://localhost:*",
+      "http://localhost:51577",
+      "https://app-viagens-leomoraes.flutterflow.app",
+      "https://app-viagens-*.web.app",
+      "https://app-viagens-*.firebaseapp.com",
+      "https://ff-debug-service-frontend-pro-ygxkweukma-uc.a.run.app"
+    ],
+    "method": ["GET", "HEAD", "OPTIONS"],
+    "responseHeader": ["Content-Type", "Authorization", "x-goog-meta-*"],
+    "maxAgeSeconds": 3600
+  }
+]

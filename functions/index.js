@@ -15,9 +15,7 @@ const corsHandler = cors({
     if (/^http:\/\/localhost:\d+$/.test(origin)) return cb(null, true);
 
     // Domínio FlutterFlow (ajuste se necessário)
-    const allowed = [
-      "https://app-viagens-leomoraes.flutterflow.app",
-    ];
+    const allowed = ["https://app-viagens-leomoraes.flutterflow.app"];
     if (allowed.includes(origin)) return cb(null, true);
 
     return cb(new Error("Not allowed by CORS"));
@@ -55,11 +53,18 @@ exports.placesAutocomplete = onRequest(
           languageCode: String(languageCode),
         };
 
+        const apiKeyRaw = GOOGLE_MAPS_API_KEY.value();
+        const apiKey = (apiKeyRaw ?? "").trim();
+
+        if (!apiKey) {
+          throw new Error("GOOGLE_MAPS_API_KEY is missing/empty");
+        }
+
         const r = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY.value(),
+            "X-Goog-Api-Key": apiKey,
             "X-Goog-FieldMask":
               "suggestions.placePrediction.placeId,suggestions.placePrediction.text",
           },
@@ -86,19 +91,23 @@ exports.placesAutocomplete = onRequest(
         return res.status(500).json({ ok: false, error: String(e) });
       }
     });
-  }
+  },
 );
 
 /* ============================================================
  * PLACES DETAILS (NOVO — PASSO B2)
  * ============================================================ */
+function getMapsKey() {
+  const raw = GOOGLE_MAPS_API_KEY.value();
+  const key = (raw ?? "").trim();
+  if (!key) throw new Error("GOOGLE_MAPS_API_KEY is missing/empty");
+  return key;
+}
+
 exports.placesDetails = onRequest(
   { region: "southamerica-east1", secrets: [GOOGLE_MAPS_API_KEY] },
   (req, res) => {
-    // Preflight
-    if (req.method === "OPTIONS") {
-      return res.status(204).send("");
-    }
+    if (req.method === "OPTIONS") return res.status(204).send("");
 
     corsHandler(req, res, async () => {
       try {
@@ -106,10 +115,10 @@ exports.placesDetails = onRequest(
         const languageCode = String(req.query.languageCode || "pt-BR").trim();
 
         if (!placeId) {
-          return res
-            .status(400)
-            .json({ ok: false, error: "placeId is required" });
+          return res.status(400).json({ ok: false, error: "placeId is required" });
         }
+
+        const apiKey = getMapsKey();
 
         const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(
           placeId
@@ -118,20 +127,17 @@ exports.placesDetails = onRequest(
         const r = await fetch(url, {
           method: "GET",
           headers: {
-            "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY.value(),
-            // FieldMask é OBRIGATÓRIO para receber latitude/longitude
+            "X-Goog-Api-Key": apiKey,
             "X-Goog-FieldMask": "location,formattedAddress,displayName",
           },
         });
 
         const data = await r.json();
-        if (!r.ok) {
-          return res.status(r.status).json({ ok: false, googleError: data });
-        }
+        if (!r.ok) return res.status(r.status).json({ ok: false, googleError: data });
 
         return res.status(200).json({
           ok: true,
-          location: data.location, // { latitude, longitude }
+          location: data.location,
           address: data.formattedAddress ?? null,
           name: data.displayName?.text ?? null,
         });
@@ -141,3 +147,4 @@ exports.placesDetails = onRequest(
     });
   }
 );
+
