@@ -1,6 +1,6 @@
 # 📦 App Viagens — Backend
 
-Backend do projeto **App Viagens**, responsável por fornecer APIs, integrações externas e regras de negócio para o aplicativo desenvolvido em **FlutterFlow**, utilizando **Firebase** como plataforma principal.
+Backend do projeto **App Viagens**, responsável por fornecer **APIs**, **integrações externas** e **regras de negócio** para o aplicativo desenvolvido em **FlutterFlow**, utilizando **Firebase** como plataforma principal.
 
 Este repositório representa a **camada backend/infraestrutural** do projeto, com foco em **segurança**, **escalabilidade** e **boas práticas de engenharia de software**.
 
@@ -21,28 +21,24 @@ O backend do **App Viagens** é responsável por:
 ## 🏗️ Arquitetura
 
 **Stack principal:**
-
 - Node.js
-- Firebase Cloud Functions
-- Firebase Admin SDK
-- HTTP Functions (REST-like)
+- Firebase Cloud Functions (HTTPS)
 - Integrações externas (Google APIs)
 
 **Fluxo simplificado:**
-````
+
 FlutterFlow App  
 ↓  
 Firebase HTTPS Functions  
 ↓  
 Serviços externos / Firestore
-````
 
 ### Motivações arquiteturais
 
 - Evitar exposição de API Keys no frontend
 - Reduzir acoplamento entre app e serviços externos
+- Centralizar validações e controles de acesso
 - Facilitar manutenção e evolução do backend
-- Permitir validações e controles de acesso centralizados
 
 ---
 
@@ -51,61 +47,111 @@ Serviços externos / Firestore
 Este backend foi projetado considerando boas práticas de **Segurança da Informação**:
 
 - ❌ Nenhuma chave sensível no frontend
-- ✅ Uso de variáveis de ambiente
-- ✅ Regras de acesso controladas via backend
-- ✅ Isolamento entre ambientes (Dev / Prod)
+- ✅ Uso de Secrets / variáveis de ambiente
 - ✅ Validação de inputs recebidos do cliente
+- ✅ Isolamento entre ambientes (Dev / Prod)
 
 Arquivos como `.env`, credenciais Firebase e secrets **não são versionados**.
 
 ---
 
-## 🌱 Ambientes
+## 🌱 Ambientes (Dev / Prod)
 
-| Ambiente | Descrição |
-|--------|----------|
-| Development | Testes, homologação e debug |
-| Production | Ambiente estável para usuários finais |
+O projeto utiliza **aliases do Firebase** para separar ambientes:
+
+```bash
+firebase use dev
+firebase use prod
+```
+
+Isso reduz o risco de deploy em ambiente incorreto.
 
 ---
 
-## 🔧 Variáveis de Ambiente
+## 🔑 Secrets / Variáveis de Ambiente
 
-Exemplo (arquivo **não versionado**):
+Exemplo de secret utilizado:
 
-GOOGLE_MAPS_API_KEY=xxxxxxxxxxxx  
-NODE_ENV=development
+- `GOOGLE_MAPS_API_KEY`
+
+Configuração por ambiente:
+
+```bash
+firebase functions:secrets:set GOOGLE_MAPS_API_KEY
+```
+
+---
+
+## 🌐 Base URL (Cloud Functions)
+
+https://southamerica-east1-appviagens2-92cbf.cloudfunctions.net
 
 ---
 
 ## 🌐 Endpoints Principais
 
 | Método | Endpoint | Descrição |
-|------|---------|----------|
-| GET | /placesAutocomplete | Autocomplete de locais |
-| GET | /placeDetails | Detalhes de local |
+|------:|----------|-----------|
+| GET | `/placesAutocomplete` | Autocomplete de locais |
+| GET | `/placesDetails` | Detalhes do local por placeId |
 
 ---
 
-## 🚀 Deploy
+## ▶️ Exemplos de chamada
 
-firebase deploy --only functions
+```bash
+curl "https://southamerica-east1-appviagens2-92cbf.cloudfunctions.net/placesAutocomplete?input=Sao%20Paulo&languageCode=pt-BR&limit=5"
+```
+
+```bash
+curl "https://southamerica-east1-appviagens2-92cbf.cloudfunctions.net/placesDetails?placeId=SEU_PLACE_ID&languageCode=pt-BR"
+```
+
+---
+
+## 🌐 CORS (Web / FlutterFlow)
+
+CORS para **Cloud Functions** e **Firebase Storage** são configurações independentes.
+
+- Cloud Functions: tratados no código (headers + OPTIONS)
+- Firebase Storage: configurado via `cors.json`
+
+```bash
+gsutil cors set cors.json gs://appviagens2-92cbf.appspot.com
+```
+
+---
+
+## 🧩 Troubleshooting (Erros Comuns)
+
+### 400 — input is required (min 2 chars)
+- O endpoint `/placesAutocomplete` exige no mínimo 2 caracteres.
+- Solução: debounce no frontend.
+
+### 400 — placeId is required
+- O endpoint `/placesDetails` exige `placeId` válido.
+- Solução: usar placeId retornado pelo autocomplete.
+
+### Erro de CORS no browser
+- Causa: confusão entre CORS de Functions e Storage.
+- Solução: configurar cada camada separadamente.
+
+### Deploy no ambiente errado
+- Solução: sempre verificar `firebase use` antes do deploy.
 
 ---
 
 ## 📁 Estrutura do Projeto
 
-app-viagens-backend/  
-├── functions/  
-│   ├── src/  
-│   │   ├── services/  
-│   │   ├── controllers/  
-│   │   ├── utils/  
-│   │   └── index.ts  
-│   ├── package.json  
-│   └── tsconfig.json  
-├── .gitignore  
-└── README.md  
+```text
+app-viagens-backend/
+├── functions/
+├── cors.json
+├── firebase.json
+├── .firebaserc
+├── .gitignore
+└── README.md
+```
 
 ---
 
@@ -113,3 +159,9 @@ app-viagens-backend/
 
 Leonardo de Moraes Souza  
 Análise e Desenvolvimento de Sistemas  
+
+---
+
+## 📄 Licença
+
+Projeto desenvolvido para fins educacionais e de portfólio.
